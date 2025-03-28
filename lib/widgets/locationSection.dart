@@ -53,7 +53,7 @@ class _locationState extends State<locationSection> {
           onSelected: (String selection) {
             setLocation(selection);
           },
-          /*optionsViewBuilder: (context, onSelected, option) => Align(
+          optionsViewBuilder: (context, onSelected, option) => Align(
                 alignment: Alignment.topLeft,
                 child: Container(
                     width: 400,
@@ -75,18 +75,11 @@ class _locationState extends State<locationSection> {
                         );
                       },
                     )),
-              ),*/
+              ),
           fieldViewBuilder:
               (context, _locationController, focusNode, onEditingComplete) {
             return Container(
-                height: 45,
-                margin: EdgeInsets.only(top: 10, left: 20, right: 20),
-                decoration: BoxDecoration(boxShadow: [
-                  BoxShadow(
-                      color: Color(0xff1D1617).withOpacity(0.11),
-                      blurRadius: 40,
-                      spreadRadius: 0.0)
-                ]),
+                //height: 45,
                 child: Focus(
                     onFocusChange: (hasFocus) {
                       if (hasFocus == false) {
@@ -94,38 +87,35 @@ class _locationState extends State<locationSection> {
                         setLocation(_locationController.text);
                       }
                     },
-                    child: TextSelectionTheme(
-                        data: TextSelectionThemeData(
-                            cursorColor: Colors.red,
-                            selectionHandleColor: Colors.red,
-                            selectionColor: Colors.white.withOpacity(.5)),
-                        child: TextField(
-                          cursorErrorColor: Colors.white,
-                          cursorColor: Colors.white,
-                          controller: _locationController,
-                          focusNode: focusNode,
-                          style: TextStyle(
-                              color: Colors.white,
+                    child: TextField(
+                      cursorErrorColor: Colors.black,
+                      cursorColor: Colors.black,
+                      controller: _locationController,
+                      focusNode: focusNode,
+                      style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600),
+                      onEditingComplete: onEditingComplete,
+                      decoration: InputDecoration(
+                          floatingLabelBehavior: FloatingLabelBehavior.always,
+                          suffixIcon: Icon(
+                            CupertinoIcons.search,
+                            color: Colors.black,
+                          ),
+                          filled: false,
+                          contentPadding: EdgeInsets.all(0),
+                          labelText: 'Location',
+                          labelStyle: TextStyle(
+                              color: Colors.black, fontWeight: FontWeight.w600),
+                          hintText: 'Grand River Rocks Waterloo',
+                          hintStyle: TextStyle(
+                              color: Colors.grey,
                               fontSize: 18,
                               fontWeight: FontWeight.w600),
-                          onEditingComplete: onEditingComplete,
-                          decoration: InputDecoration(
-                              prefixIcon: Icon(
-                                CupertinoIcons.search,
-                                color: Colors.white,
-                              ),
-                              filled: true,
-                              fillColor: Colors.blue,
-                              contentPadding: EdgeInsets.all(0),
-                              hintText: 'Location',
-                              hintStyle: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600),
-                              border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                  borderSide: BorderSide.none)),
-                        ))));
+                          border: UnderlineInputBorder(
+                              borderSide: BorderSide(color: Colors.black))),
+                    )));
           })
     ]);
   }

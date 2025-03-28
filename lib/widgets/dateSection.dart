@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:intl/intl.dart';
 
 class dateSection extends StatefulWidget {
-  final selectedDate;
-  final Function(String) onDateChanged;
-  dateSection({required this.selectedDate, required this.onDateChanged});
+  final selectedDateString;
+  final Function(DateTime) onDateChanged;
+  dateSection({required this.selectedDateString, required this.onDateChanged});
 
   @override
   State<dateSection> createState() => _dateState();
@@ -12,11 +13,18 @@ class dateSection extends StatefulWidget {
 
 class _dateState extends State<dateSection> {
   TextEditingController _dateController = TextEditingController();
+  final DateFormat outputFormat = DateFormat('EEEE, MMMM d, yyyy');
+  late DateTime selectedDateDT;
 
   @override
   void initState() {
     super.initState();
-    _dateController.text = widget.selectedDate!;
+    selectedDateDT = DateTime.parse(widget.selectedDateString!);
+    _dateController.text = selectedDateDT.year == DateTime.now().year &&
+            selectedDateDT.month == DateTime.now().month &&
+            selectedDateDT.day == DateTime.now().day
+        ? "Today"
+        : outputFormat.format(selectedDateDT);
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -40,14 +48,19 @@ class _dateState extends State<dateSection> {
           );
         },
         context: context,
-        initialDate: DateTime.now(),
+        initialDate: selectedDateDT, // TODO change to be the preselected date
         firstDate: DateTime(2010),
         lastDate: DateTime(2100));
 
     if (_picked != null) {
+      selectedDateDT = _picked;
       setState(() {
-        _dateController.text = _picked.toString().split(" ")[0];
-        widget.onDateChanged(_dateController.text);
+        _dateController.text = _picked.year == DateTime.now().year &&
+                _picked.month == DateTime.now().month &&
+                _picked.day == DateTime.now().day
+            ? 'Today'
+            : outputFormat.format(_picked);
+        widget.onDateChanged(selectedDateDT);
       });
     }
   }
@@ -56,7 +69,6 @@ class _dateState extends State<dateSection> {
   Widget build(BuildContext context) {
     return Container(
         height: 45,
-        margin: EdgeInsets.only(top: 10, left: 20, right: 20),
         decoration: BoxDecoration(boxShadow: [
           BoxShadow(
               color: Color(0xff1D1617).withOpacity(0.11),
@@ -65,21 +77,20 @@ class _dateState extends State<dateSection> {
         ]),
         child: TextField(
           style: TextStyle(
-              color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+              color: Colors.black, fontSize: 18, fontWeight: FontWeight.w600),
           controller: _dateController,
           decoration: InputDecoration(
-              prefixIcon: Icon(
+              suffixIcon: Icon(
                 CupertinoIcons.calendar,
-                color: Colors.white,
+                color: Colors.black,
               ),
-              filled: true,
-              fillColor: Colors.blue,
+              filled: false,
+              labelText: 'Date',
+              labelStyle: TextStyle(fontWeight: FontWeight.w600),
               contentPadding: EdgeInsets.all(0),
-              hintText: 'Date',
               hintStyle: TextStyle(color: Colors.white, fontSize: 18),
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(15),
-                  borderSide: BorderSide.none)),
+              border: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Colors.black))),
           readOnly: true,
           onTap: () {
             _selectDate(context);

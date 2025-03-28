@@ -43,9 +43,14 @@ dependencies:
   intl: ^0.17.0
   dropdown_button2: ^2.3.8
   fl_chart: ^0.68.0
-  carousel_slider: ^4.0.0
+  carousel_slider: ^5.0.0
   smooth_page_indicator: ^0.3.0-nullsafety.0
   auto_size_text: ^3.0.0
+  scroll_snap_list: ^0.9.1
+  sliding_up_panel: ^2.0.0+1
+  firebase_core: ^3.11.0
+  cloud_firestore: ^5.6.3
+  d_chart: ^2.10.2
 
 
 dev_dependencies:
@@ -58,6 +63,12 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^3.0.0
+  flutter_launcher_icons: "^0.14.3"
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  image_path: "assets/icons/icon.png"
+  min_sdk_android: 21 # android min sdk min:16, default 21
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -87,9 +98,12 @@ flutter:
   # list giving the asset and other descriptors for the font. For
   # example:
   fonts:
-    - family: CustomIcons
-      fonts:
-      - asset: fonts/CustomIcons.ttf
+     - family: PlusJakartaSans
+       fonts:
+        - asset: fonts/PlusJakartaSans-VariableFont_wght.ttf
+     - family: CustomIcons
+       fonts:
+       - asset: fonts/CustomIcons.ttf
 #  - family: Poppins
 #    fonts:
 #      - asset: fonts/Poppins-Bold.ttf

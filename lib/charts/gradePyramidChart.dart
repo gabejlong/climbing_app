@@ -3,7 +3,6 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:climbing_app/widgets/myDropDown.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:climbing_app/pages/database.dart';
 import 'package:climbing_app/models/lists_model.dart';
 import 'package:climbing_app/utils.dart';
 
@@ -15,7 +14,7 @@ class gradePyramidChart extends StatefulWidget {
 }
 
 class _gradePyramidChartState extends State<gradePyramidChart> {
-  late DB db;
+  //late DB db;
   String style = 'Bouldering';
   List<double> flashList = [];
   List<double> redpointList = [];
@@ -24,18 +23,18 @@ class _gradePyramidChartState extends State<gradePyramidChart> {
   @override
   void initState() {
     super.initState();
-    db = DB();
+    //db = DB();
     getBoulderingGradePyramid(style);
   }
 
   Future<void> getBoulderingGradePyramid(newStyle) async {
     style = newStyle;
     if (style == 'Bouldering') {
-      flashList = await db.getBoulderingFlashGradeCount(setFilter());
-      redpointList = await db.getBoulderingRedpointGradeCount(setFilter());
+      //flashList = await db.getBoulderingFlashGradeCount(setFilter());
+      //redpointList = await db.getBoulderingRedpointGradeCount(setFilter());
     } else {
-      flashList = await db.getRopesFlashGradeCount(setFilter());
-      redpointList = await db.getRopesRedpointGradeCount(setFilter());
+      //flashList = await db.getRopesFlashGradeCount(setFilter());
+      //redpointList = await db.getRopesRedpointGradeCount(setFilter());
     }
     setState(() {});
   }
@@ -101,7 +100,7 @@ class _gradePyramidChartState extends State<gradePyramidChart> {
     return Column(
       children: [
         myDropDown(
-          list: styleList,
+          list: typeList,
           onDropDownChanged: getBoulderingGradePyramid,
           initial: 'Bouldering',
           hint: '',

@@ -29,7 +29,7 @@ class _climbingStylesState extends State<climbingStylesSection> {
         //child: Center(
         child: ListView.separated(
           shrinkWrap: true,
-          itemCount: styleList.length,
+          itemCount: typeList.length,
           scrollDirection: Axis.horizontal,
           padding: EdgeInsets.only(left: 20, right: 20),
           separatorBuilder: (context, index) => SizedBox(
@@ -42,14 +42,14 @@ class _climbingStylesState extends State<climbingStylesSection> {
                   TextButton(
                     onPressed: () {
                       setState(() {
-                        widget.onStyleChanged(styleList[index]);
+                        widget.onStyleChanged(typeList[index]);
                       });
                     },
                     style: ButtonStyle(
                       overlayColor: MaterialStateProperty.all(
                           Colors.white.withOpacity(0.1)),
                       backgroundColor: MaterialStateProperty.all(
-                          widget.selectedStyle == styleList[index]
+                          widget.selectedStyle == typeList[index]
                               ? Colors.blue
                               : Colors.grey),
                       shape: MaterialStateProperty.all(CircleBorder()),
@@ -57,13 +57,13 @@ class _climbingStylesState extends State<climbingStylesSection> {
                     child: Container(
                       height: 60,
                       width: 60,
-                      child: styleList[index] == 'Top Rope'
+                      child: typeList[index] == 'Top Rope'
                           ? Icon(
                               CustomIcons.rope,
                               size: 50,
                               color: Colors.white.withOpacity(0.9),
                             )
-                          : styleList[index] == 'Bouldering'
+                          : typeList[index] == 'Bouldering'
                               ? Icon(
                                   CustomIcons.rock,
                                   size: 50,
@@ -76,7 +76,7 @@ class _climbingStylesState extends State<climbingStylesSection> {
                   ),
                   Container(
                     child: Text(
-                      styleList[index],
+                      typeList[index],
                       style: TextStyle(
                         color: Colors.black,
                         fontSize: 15,

@@ -1,11 +1,10 @@
 import 'package:auto_size_text/auto_size_text.dart';
-import "package:flutter/material.dart";
+import "package:flutter/material.dart" hide CarouselController;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:climbing_app/widgets/myDropDown.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:climbing_app/pages/database.dart';
 import 'package:climbing_app/models/lists_model.dart';
 import 'package:climbing_app/utils.dart';
 
@@ -18,8 +17,8 @@ class countClimbsChart extends StatefulWidget {
 }
 
 class _countClimbsChartState extends State<countClimbsChart> {
-  final controller = CarouselController();
-  late DB db;
+  final controller = CarouselSliderController();
+  //late DB db;
   List<int> count = [];
   List<String> dateRange = [];
   late String currentDate;
@@ -33,17 +32,17 @@ class _countClimbsChartState extends State<countClimbsChart> {
   @override
   void initState() {
     super.initState();
-    db = DB();
+    //db = DB();
     getLists();
   }
 
   Future<void> getLists() async {
-    await getDateRangeList(timeFilter);
-    await getCount(timeFilter, DateTime.now().year.toString());
+    //await getDateRangeList(timeFilter);
+    //await getCount(timeFilter, DateTime.now().year.toString());
     setState(() {});
   }
 
-  Future<void> getDateRangeList(timeFilterTemp) async {
+  /* Future<void> getDateRangeList(timeFilterTemp) async {
     dateRange = await db.getDateRangeList(
         timeFilterTemp, setFilterDateRange(timeFilterTemp));
     dateRangeIndex = dateRange.length - 1;
@@ -60,12 +59,12 @@ class _countClimbsChartState extends State<countClimbsChart> {
       count = await db.getDailyCountByMonth(
           setFilterCount(timeFilterTemp), date, widget.output);
     }
-  }
+  }*/
 
   void onStyleChanged(newStyle) async {
     style = newStyle;
-    await getDateRangeList(timeFilter);
-    await getCount(timeFilter, timeFilter == 'Lifetime' ? '' : dateRange.last);
+    //await getDateRangeList(timeFilter);
+    //await getCount(timeFilter, timeFilter == 'Lifetime' ? '' : dateRange.last);
     if (timeFilter != 'Lifetime' && dateRange.isNotEmpty) {
       controller.jumpToPage(dateRange.length);
     }
@@ -73,9 +72,9 @@ class _countClimbsChartState extends State<countClimbsChart> {
   }
 
   void onTimeFilterChanged(timeFilterTemp) async {
-    await getDateRangeList(timeFilterTemp);
-    await getCount(
-        timeFilterTemp, timeFilterTemp == 'Lifetime' ? '' : dateRange.last);
+    //await getDateRangeList(timeFilterTemp);
+    //await getCount(
+    //timeFilterTemp, timeFilterTemp == 'Lifetime' ? '' : dateRange.last);
 
     if (timeFilter != 'Lifetime') {
       controller.jumpToPage(dateRange.length);
@@ -116,10 +115,9 @@ class _countClimbsChartState extends State<countClimbsChart> {
 
   void onLocationChanged(newLocation) async {
     location = newLocation;
-    await getDateRangeList(timeFilter);
-    await getCount(timeFilter, timeFilter == 'Lifetime' ? '' : dateRange.last);
+    //await getDateRangeList(timeFilter);
+    //await getCount(timeFilter, timeFilter == 'Lifetime' ? '' : dateRange.last);
     if (timeFilter != 'Lifetime' && dateRange.isNotEmpty) {
-      print(dateRange.length);
       controller.jumpToPage(dateRange.length);
     }
     setState(() {});
@@ -127,24 +125,23 @@ class _countClimbsChartState extends State<countClimbsChart> {
 
   void onAttemptsChanged(newAttempts) async {
     attempts = newAttempts;
-    await getDateRangeList(timeFilter);
-    await getCount(timeFilter, timeFilter == 'Lifetime' ? '' : dateRange.last);
+    //await getDateRangeList(timeFilter);
+    //await getCount(timeFilter, timeFilter == 'Lifetime' ? '' : dateRange.last);
     if (timeFilter != 'Lifetime' && dateRange.isNotEmpty) {
-      print(dateRange.length);
       controller.jumpToPage(dateRange.length);
     }
     setState(() {});
   }
 
   void next(index) async {
-    await getCount(timeFilter, dateRange[index]);
+    //await getCount(timeFilter, dateRange[index]);
     setState(() {
       controller.nextPage();
     });
   }
 
   void previous(index) async {
-    await getCount(timeFilter, dateRange[index]);
+    //await getCount(timeFilter, dateRange[index]);
     setState(() {
       controller.previousPage();
     });
@@ -252,7 +249,7 @@ class _countClimbsChartState extends State<countClimbsChart> {
           children: [
             SizedBox(width: 5),
             myDropDown(
-              list: styleList,
+              list: typeList,
               onDropDownChanged: onStyleChanged,
               initial: 'Bouldering',
               hint: '',

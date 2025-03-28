@@ -4,8 +4,7 @@ import 'package:climbing_app/charts/gradePyramidChart.dart';
 import 'package:climbing_app/models/lists_model.dart';
 import 'package:climbing_app/utils.dart';
 import "package:climbing_app/widgets/navDrawer.dart";
-import 'package:climbing_app/pages/database.dart';
-import 'package:climbing_app/pages/logClimbsPage.dart';
+import 'package:climbing_app/pages/newSessionPage.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:climbing_app/widgets/myDropDown.dart';
@@ -14,30 +13,31 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
 import 'package:climbing_app/charts/countClimbsChart.dart';
+import 'package:climbing_app/models/classModels.dart';
 
-class homePage extends StatefulWidget {
-  homePage({super.key});
+class statsPage extends StatefulWidget {
+  statsPage({super.key});
 
   @override
-  State<homePage> createState() => _homePageState();
+  State<statsPage> createState() => _statsPageState();
 }
 
-class _homePageState extends State<homePage> {
+class _statsPageState extends State<statsPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   List<SessionItem> sessionList = [];
   List<ClimbPreviewItem> climbPreviewList = [];
   int activeIndex = 0;
 
-  late DB db;
+//  late DB db;
   late List<Widget> graphs = [];
   final DateFormat outputFormat = DateFormat('MMMM d, yyyy');
 
   @override
   void initState() {
     super.initState();
-    db = DB();
-    getSessionList();
+    //   db = DB();
+    //   getSessionList();
     getGraph();
   }
 
@@ -50,7 +50,7 @@ class _homePageState extends State<homePage> {
     ];
   }
 
-  void getSessionList() async {
+/*  void getSessionList() async {
     sessionList = await db.getSessionList();
     setState(() {});
   }
@@ -66,7 +66,7 @@ class _homePageState extends State<homePage> {
 
   void deleteSession(int sessionId) async {
     db.deleteSession(sessionId);
-  }
+  }*/
 
   Column sessionListSection() {
     return Column(
@@ -95,15 +95,15 @@ class _homePageState extends State<homePage> {
                           borderRadius: BorderRadius.circular(15))),
                     ),
                     onPressed: () async {
-                      getClimbPreview(sessionList[index].sessionId!);
+                      /*getClimbPreview(sessionList[index].sessionId!);
                       deletePreview(sessionList[index].sessionId!);
-                      deleteSession(sessionList[index].sessionId!);
+                      deleteSession(sessionList[index].sessionId!);*/
                       await Future.delayed(const Duration(milliseconds: 100));
                       if (climbPreviewList.isNotEmpty) {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => logClimbsPage(
+                            builder: (context) => newSessionPage(
                               climbPreview: climbPreviewList,
                               selectedLocation: sessionList[index].location,
                               selectedDate: sessionList[index].date,
@@ -142,52 +142,47 @@ class _homePageState extends State<homePage> {
   Widget build(BuildContext context) {
     delay();
     return Scaffold(
+        bottomNavigationBar: NavBottomBar(),
         key: _scaffoldKey,
-        drawer: NavDrawer(),
-        appBar: AppBar(
-          leading: IconButton(
-              onPressed: () {
-                _scaffoldKey.currentState?.openDrawer();
-              },
-              icon: Icon(
-                CupertinoIcons.bars,
-                color: Colors.white,
-                size: 30,
-              )),
-          title: Text(
-            'Home',
-            style: TextStyle(
-                color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold),
-          ),
-          backgroundColor: Colors.blue,
-          elevation: 0.0,
-          centerTitle: true,
-        ),
-        body: SingleChildScrollView(
-            child: Column(children: [
-          sessionList.isNotEmpty ? sessionListSection() : SizedBox(),
-          Column(children: [
-            graphs.isNotEmpty
-                ? CarouselSlider.builder(
-                    itemCount: graphs.length,
-                    options: CarouselOptions(
-                        onPageChanged: (index, reason) =>
-                            setState(() => activeIndex = index),
-                        viewportFraction: 1,
-                        //enlargeCenterPage: true,
-                        pageSnapping: true,
-                        height: 632),
-                    itemBuilder: (context, index, realIndex) {
-                      return graphs[index];
-                    },
+        // drawer: NavDrawer(),
+        body: Container(
+            padding: EdgeInsets.fromLTRB(20, 20, 20, 10),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(
+                children: [
+                  Text(
+                    'Your Stats',
+                    style: TextStyle(fontSize: 27, fontWeight: FontWeight.w600),
                   )
-                : SizedBox(),
-            graphs.isNotEmpty ? buildIndicator() : SizedBox(),
-            SizedBox(
-              height: 10,
-            )
-          ])
-        ])));
+                ],
+              ),
+              SingleChildScrollView(
+                  child: Column(children: [
+                sessionList.isNotEmpty ? sessionListSection() : SizedBox(),
+                Column(children: [
+                  graphs.isNotEmpty
+                      ? CarouselSlider.builder(
+                          itemCount: graphs.length,
+                          options: CarouselOptions(
+                              onPageChanged: (index, reason) =>
+                                  setState(() => activeIndex = index),
+                              viewportFraction: 1,
+                              //enlargeCenterPage: true,
+                              pageSnapping: true,
+                              height: 632),
+                          itemBuilder: (context, index, realIndex) {
+                            return graphs[index];
+                          },
+                        )
+                      : SizedBox(),
+                  graphs.isNotEmpty ? buildIndicator() : SizedBox(),
+                  SizedBox(
+                    height: 10,
+                  )
+                ])
+              ]))
+            ])));
   }
 
   Widget buildIndicator() => AnimatedSmoothIndicator(

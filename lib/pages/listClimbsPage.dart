@@ -3,17 +3,22 @@ import "package:flutter/material.dart";
 import 'package:flutter/painting.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
-import 'package:climbing_app/widgets/navDrawer.dart';
-import 'package:climbing_app/pages/database.dart';
+
+import 'package:climbing_app/widgets/allWidgets.dart';
 
 import 'package:climbing_app/widgets/myDropDown.dart';
-//import 'package:sqflite/sqflite.dart';
 import 'package:flutter/cupertino.dart';
 
 import 'package:climbing_app/utils.dart' as utils;
 import 'package:intl/intl.dart';
 
 import 'package:climbing_app/models/lists_model.dart';
+import 'package:climbing_app/models/classModels.dart';
+
+import 'package:sliding_up_panel/sliding_up_panel.dart';
+import 'package:climbing_app/firebaseFunctions.dart';
+
+import 'package:d_chart/d_chart.dart';
 
 class listClimbsPage extends StatefulWidget {
   listClimbsPage({super.key});
@@ -22,74 +27,52 @@ class listClimbsPage extends StatefulWidget {
   State<listClimbsPage> createState() => _listClimbsPageState();
 }
 
+String userID = 'long.climber';
+
 class _listClimbsPageState extends State<listClimbsPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  bool isSort = true;
+  late Future<List<ClimbReadItem>> gettingClimbs;
+  List<ClimbReadItem> climbs = [];
 
-  List<ClimbItem> climbs = [];
-  late DB db;
+  List<SessionReadItem> sessions = [];
+  List<List<NumericData>> piesList = [];
 
+  late Filters climbFilters;
+  late Filters sessionFilters;
+
+  RangeValues activeGradeFilter = const RangeValues(0, 17);
+  int totalCount = 0;
   @override
   void initState() {
+    climbFilters = Filters(
+      lowGrade: activeGradeFilter.start,
+      highGrade: activeGradeFilter.end,
+    );
     super.initState();
-    db = DB();
+    // db = DB();
     getData();
-    filtList = getList(filterType);
   }
 
   void getData() async {
-    climbs = await db.getData();
-    setState(() {});
+    totalCount = await getAllClimbsCount(userID);
   }
 
-  void delete(index) async {
-    db.delete(climbs[index].id!);
-    setState(() {
-      climbs.removeAt(index);
-    });
-  }
-
-  List<String> getList(string) {
-    switch (string) {
-      case 'Style':
-        return styleList;
-      case 'Grade':
-        return gradeList;
-      case 'Attempts':
-        return attemptsList;
-      default:
-        return [];
-    }
-  }
-
-  void changeFilterType(string) {
-    setState(() {
-      filtList = getList(string);
-      selectedFilter = null;
-      filterType = string;
-      changeSortType(sortBy);
-    });
-  }
-
-  void changeSortType(string) async {
-    if (selectedFilter == null) {
-      climbs = await db.sortBy(string.toLowerCase());
-    }
-
-    setState(() {
-      sortBy = string;
-      if (selectedFilter != null) {
-        filterSort();
+  List<List<NumericData>> setSessionSlices() {
+    for (var session in sessions) // loop through sessions
+    {
+      List<NumericData> pies = [];
+      for (int i = 0; i < session.grades.length; i++) // loop through climbs
+      {
+        Color color = session.grades[i] >= 0
+            ? utils.setBoulderingColor(session.grades[i])
+            : utils.setRopesColor(session.grades[i] * -1);
+        pies.add(NumericData(
+            domain: i, color: color, measure: 1 / session.grades.length));
       }
-    });
-  }
-
-  void filterSort() async {
-    climbs = await db.filterSort(
-        filterType.toLowerCase(),
-        filtList[selectedFilter!],
-        sortBy.toLowerCase(),
-        filterType != 'Grade' ? null : selectedFilter! > 10);
-    setState(() {});
+      piesList.add(pies);
+    }
+    return piesList;
   }
 
   String filterType = 'Style';
@@ -98,184 +81,475 @@ class _listClimbsPageState extends State<listClimbsPage> {
   int? selectedFilter;
   final DateFormat outputFormat = DateFormat('MMMM d, yyyy');
   int? selectedClimb;
+  final PanelController panelController = PanelController();
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        key: _scaffoldKey,
-        drawer: NavDrawer(),
-        appBar: appBar(_scaffoldKey),
-        floatingActionButton: FloatingActionButton(
-          onPressed: selectedClimb != null
-              ? () => (setState(() {
-                    delete(selectedClimb);
-                    selectedClimb = null;
-                  }))
-              : null,
-          backgroundColor: selectedClimb != null ? Colors.red : Colors.grey,
-          child: Icon(
-            CupertinoIcons.trash,
-            size: 20,
-            color: Colors.white,
-          ),
-        ),
-        body: Column(crossAxisAlignment: CrossAxisAlignment.center, children: [
-          SizedBox(
-            height: 5,
-          ),
-          filterSortBar(context),
-          Expanded(child: climbsList())
-        ]));
-  }
+    return DefaultTabController(
+        length: 3,
+        child: Scaffold(
+            bottomNavigationBar: NavBottomBar(),
+            key: _scaffoldKey,
+            backgroundColor: Colors.white,
+            body: SlidingUpPanel(
+                controller: panelController,
+                snapPoint: isSort ? null : 0.5,
+                maxHeight: isSort ? 300 : 600,
+                minHeight: 0,
+                borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(30),
+                    topRight: Radius.circular(30)),
+                backdropEnabled: true,
+                panel: isSort ? sortPanel() : filterPanel(),
+                body: Center(
+                    child: Container(
+                        padding: EdgeInsets.fromLTRB(20, 30, 20, 50),
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Your Climbs',
+                                textAlign: TextAlign.left,
+                                style: TextStyle(
+                                    fontSize: 27, fontWeight: FontWeight.w600),
+                              ),
+                              SizedBox(
+                                height: 10,
+                              ),
+                              Container(
+                                  height: 62,
+                                  //width: 200,
+                                  child: AppBar(
+                                    bottom: TabBar(
+                                        isScrollable: true,
+                                        labelPadding: EdgeInsets.symmetric(
+                                            horizontal: 10, vertical: 0),
+                                        labelColor: Colors.black,
+                                        dividerColor: Colors.grey,
+                                        unselectedLabelColor: Colors.grey,
+                                        tabAlignment: TabAlignment.start,
+                                        indicatorSize: TabBarIndicatorSize.tab,
+                                        labelStyle: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600),
+                                        splashBorderRadius:
+                                            BorderRadius.circular(50),
+                                        tabs: [
+                                          Tab(
+                                              height: 30,
+                                              child: Text('Sessions')),
+                                          Tab(
+                                              height: 30,
+                                              child: Text('Climbs')),
+                                          Tab(
+                                              height: 30,
+                                              child: Text('In Progress'))
+                                        ]),
+                                  )),
+                              filterSortBar(context),
+                              Expanded(
+                                child: TabBarView(
+                                  children: [
+                                    FutureBuilder(
+                                        // TODO add case for no connection after stops loading cache something?
+                                        future: getSessions(userID),
+                                        builder: (context, snapshot) {
+                                          if (snapshot.connectionState ==
+                                              ConnectionState.waiting) {
+                                            return Align(
+                                                alignment: Alignment.topCenter,
+                                                child: Padding(
+                                                  padding:
+                                                      EdgeInsets.only(top: 20),
+                                                  child: SizedBox(
+                                                    height: 20,
+                                                    width: 20,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                      color: Colors.blue,
+                                                      strokeWidth: 3,
+                                                    ),
+                                                  ),
+                                                ));
+                                          }
+                                          if (!snapshot.hasData) {
+                                            return Align(
+                                                alignment: Alignment.topCenter,
+                                                child: Padding(
+                                                    padding: EdgeInsets.only(
+                                                        top: 20),
+                                                    child: Text(
+                                                      "No sessions match the filters",
+                                                      style: TextStyle(
+                                                          color: Colors.grey),
+                                                    )));
+                                          }
+                                          sessions = snapshot.data!;
+                                          piesList = setSessionSlices();
 
-  AppBar appBar(key) {
-    return AppBar(
-      leading: IconButton(
-          onPressed: () {
-            key.currentState?.openDrawer();
-          },
-          icon: Icon(
-            CupertinoIcons.bars,
-            color: Colors.white,
-            size: 30,
-          )),
-      title: Text(
-        'Your Climbs',
-        style: TextStyle(
-            color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold),
-      ),
-      backgroundColor: Colors.blue,
-      elevation: 0.0,
-      centerTitle: true,
-    );
+                                          return sessionsList();
+                                        }),
+                                    FutureBuilder(
+                                        future:
+                                            getAllClimbs(userID, climbFilters),
+                                        builder: (context, snapshot) {
+                                          if (snapshot.connectionState ==
+                                              ConnectionState.waiting) {
+                                            return Align(
+                                                alignment: Alignment.topCenter,
+                                                child: Padding(
+                                                  padding:
+                                                      EdgeInsets.only(top: 20),
+                                                  child: SizedBox(
+                                                    height: 20,
+                                                    width: 20,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                      color: Colors.blue,
+                                                      strokeWidth: 3,
+                                                    ),
+                                                  ),
+                                                ));
+                                          }
+                                          if (snapshot.hasError) {
+                                            return Align(
+                                                alignment: Alignment.topCenter,
+                                                child: Padding(
+                                                    padding: EdgeInsets.only(
+                                                        top: 20),
+                                                    child: Text(
+                                                      "Error loading climbs",
+                                                      style: TextStyle(
+                                                          color: Colors.red),
+                                                    )));
+                                          }
+                                          if (snapshot.data!.isEmpty) {
+                                            return Align(
+                                                alignment: Alignment.topCenter,
+                                                child: Padding(
+                                                    padding: EdgeInsets.only(
+                                                        top: 20),
+                                                    child: Text(
+                                                      "No climbs match the filters",
+                                                      style: TextStyle(
+                                                          color: Colors.grey),
+                                                    )));
+                                          }
+                                          climbs = snapshot.data!;
+                                          return climbsList();
+                                        }),
+                                    Center(
+                                      child: Text("Content for Tab 3"),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ]))))));
   }
 
   Column filterSortBar(context) {
-    return Column(
-      children: [
-        Container(
-          child: Row(
-            children: [
-              SizedBox(width: 10),
-              Icon(
-                CupertinoIcons.arrow_up_arrow_down,
-                color: Colors.black,
-                size: 22,
-              ),
-              SizedBox(width: 8),
-              Text('Sort by ',
-                  style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600)),
-              myDropDown(
-                list: sortByList,
-                onDropDownChanged: changeSortType,
-                initial: sortBy,
-                hint: '',
-              ),
-            ],
+    List<String> filtersDisplay = climbFilters.toList();
+    return Column(children: [
+      Row(
+        children: [
+          TextButton.icon(
+            label: Text(
+              'Filters',
+              style: TextStyle(
+                  color: Color(0xff007BDD),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600),
+            ),
+            onPressed: () {
+              setState(() {
+                isSort = false;
+                panelController.animatePanelToPosition(0.5);
+              });
+            },
           ),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Container(
-              child: Row(
-                children: [
-                  SizedBox(width: 10),
-                  Icon(
-                    CupertinoIcons.line_horizontal_3_decrease,
-                    color: Colors.black,
-                    size: 25,
-                  ),
-                  SizedBox(width: 8),
-                  Text(
-                    'Filter by ',
-                    style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600),
-                  ),
-                  myDropDown(
-                    list: filterList,
-                    onDropDownChanged: changeFilterType,
-                    initial: filterType,
-                    hint: '',
+          TextButton.icon(
+            label: Text(
+              'Sort',
+              style: TextStyle(
+                  color: Color(0xff007BDD),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600),
+            ),
+            icon: Icon(
+              CupertinoIcons.arrow_up_arrow_down,
+              color: Color(0xff007BDD),
+              size: 18,
+            ),
+            onPressed: () {
+              setState(() {
+                isSort = true;
+                panelController.open();
+              });
+            },
+          ),
+          Spacer(),
+          TextButton.icon(
+            label: Text(
+              'Reset',
+              style: TextStyle(
+                  color: Color(0xff007BDD),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600),
+            ),
+            icon: Icon(
+              CupertinoIcons.refresh_thin,
+              color: Color(0xff007BDD),
+              size: 18,
+            ),
+            onPressed: () {
+              setState(() {
+                // set all filters to null
+              });
+            },
+          ),
+        ],
+      ),
+      Row(
+        children: [
+          Wrap(
+            spacing: 5,
+            runSpacing: 5,
+            children: List.generate(
+              filtersDisplay.length,
+              (index) {
+                return Column(
+                  children: [
+                    TextButton(
+                        onPressed: () {},
+                        style: ButtonStyle(
+                          backgroundColor:
+                              MaterialStateProperty.all(Colors.black),
+                          overlayColor: MaterialStateProperty.all(
+                              Colors.white.withOpacity(0.1)),
+                        ),
+                        child: Text(
+                          filtersDisplay[index],
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        )),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+      SizedBox(height: 10),
+      Divider(
+        height: 10,
+        thickness: 1,
+        color: Colors.grey,
+      ),
+      Align(
+          alignment: Alignment.topLeft,
+          child: Text(
+            textAlign: TextAlign.left,
+            climbFilters.selectedSort +
+                " • Showing " +
+                climbs.length.toString() +
+                " of " +
+                totalCount.toString(),
+            style: TextStyle(color: Colors.grey),
+          ))
+    ]);
+  }
+
+  Container filterPanel() {
+    return Container(
+      padding: EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+              child: Container(
+            width: 35,
+            height: 5,
+            decoration: BoxDecoration(
+                color: Colors.grey, borderRadius: BorderRadius.circular(10)),
+          )),
+          SizedBox(height: 10),
+          Text(
+            'Filters',
+            textAlign: TextAlign.left,
+            style: TextStyle(fontSize: 27, fontWeight: FontWeight.w600),
+          ),
+          Text(
+            'Type',
+            textAlign: TextAlign.left,
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          ),
+          SizedBox(
+            height: 10,
+          ),
+          MultiSelect(
+              selected: climbFilters.selectedTypeFilters,
+              items: typeList,
+              onItemPressed: (filterSet) => {
+                    setState(() {
+                      climbFilters.selectedTypeFilters = filterSet;
+                    })
+                  }),
+          SizedBox(height: 20),
+          Text('Grade Range: V' +
+              activeGradeFilter.start.toStringAsFixed(0) +
+              ' to V' +
+              activeGradeFilter.end.toStringAsFixed(0)),
+          SliderTheme(
+              data: SliderThemeData(
+                  valueIndicatorColor: Colors.white,
+                  // overlayColor: Colors.white,
+                  thumbColor: Colors.white,
+                  trackHeight: 8,
+                  activeTrackColor: Colors.blue,
+                  inactiveTrackColor: Color(0xffdddddd),
+                  inactiveTickMarkColor: Colors.grey),
+              child: RangeSlider(
+                max: 17,
+                min: 0,
+                divisions: 17,
+                values: activeGradeFilter,
+                onChanged: (values) {
+                  setState(() {
+                    activeGradeFilter = values;
+                    climbFilters.lowGrade = values.start;
+                    climbFilters.highGrade = values.end;
+                  });
+                },
+              )),
+          SizedBox(height: 20),
+          Text(
+            'Attempts',
+            textAlign: TextAlign.left,
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          ),
+          SizedBox(
+            height: 10,
+          ),
+          MultiSelect(
+            selected: climbFilters.selectedAttemptsFilters,
+            items: attemptsList,
+            onItemPressed: (filterSet) {
+              climbFilters.selectedAttemptsFilters = filterSet;
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Container sortPanel() {
+    return Container(
+      padding: EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+              child: Container(
+            width: 35,
+            height: 5,
+            decoration: BoxDecoration(
+                color: Colors.grey, borderRadius: BorderRadius.circular(10)),
+          )),
+          SizedBox(height: 10),
+          Text(
+            'Sort',
+            textAlign: TextAlign.left,
+            style: TextStyle(fontSize: 27, fontWeight: FontWeight.w600),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: List.generate(sortOptions.length, (index) {
+              return Column(children: [
+                Row(children: [
+                  Container(
+                    width: 15,
+                    height: 15,
+                    child: TextButton(
+                      child: Text(''),
+                      onPressed: () {
+                        setState(() {
+                          climbFilters.selectedSort = sortOptions[index];
+                        });
+                      },
+                      style: ButtonStyle(
+                        backgroundColor: MaterialStateProperty.all(
+                            climbFilters.selectedSort == sortOptions[index]
+                                ? Colors.black
+                                : Color(0xfff0f0f0)),
+                        overlayColor: MaterialStateProperty.all(
+                            Colors.white.withOpacity(0.1)),
+                      ),
+                    ),
                   ),
                   SizedBox(
-                    width: 5,
+                    width: 10,
+                  ),
+                  Text(
+                    textAlign: TextAlign.left,
+                    sortOptions[index],
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
                   )
-                ],
-              ),
-            ),
+                ]),
+                SizedBox(
+                  height: 15,
+                )
+              ]);
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  ListView sessionsList() {
+    return ListView.separated(
+      shrinkWrap: true,
+      itemCount: sessions.length,
+      scrollDirection: Axis.vertical,
+      separatorBuilder: (context, index) => Divider(
+        thickness: 1,
+        color: Colors.grey,
+      ),
+      itemBuilder: (context, index) {
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Container(
+                padding: EdgeInsets.all(0),
+                width: 100,
+                height: 100,
+                child: Stack(children: [
+                  DChartPieN(
+                    data: piesList[index],
+                    configRenderPie: const ConfigRenderPie(arcWidth: 5),
+                  ),
+                  Center(
+                      child: Text(
+                    sessions[index].grades.length.toString(),
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  )),
+                ])),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  sessions[index].location,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                ),
+                Text(outputFormat.format(DateTime.parse(sessions[index].date)))
+              ],
+            )
           ],
-        ),
-        Container(
-          height: 55,
-          color: Color.fromARGB(255, 236, 236, 236),
-          width: double.infinity,
-          child: ListView.separated(
-              shrinkWrap: true,
-              itemCount: filtList.length,
-              scrollDirection: Axis.horizontal,
-              padding:
-                  EdgeInsets.only(left: 10, right: 10, top: 10, bottom: 10),
-              itemBuilder: ((context, index) {
-                if (index == 10) {
-                  return Row(
-                    children: [
-                      SizedBox(width: 5),
-                      Container(
-                        height: 10,
-                        width: 2,
-                        decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(3),
-                            color: Colors.grey),
-                      ),
-                      SizedBox(
-                        width: 5,
-                      )
-                    ],
-                  );
-                } else {
-                  return SizedBox(
-                      height: 1,
-                      child: TextButton(
-                        style: ButtonStyle(
-                            overlayColor: MaterialStateProperty.all(
-                                Colors.white.withOpacity(0.1)),
-                            backgroundColor: selectedFilter == index
-                                ? MaterialStateProperty.all(Colors.blue)
-                                : MaterialStateProperty.all(Colors.grey)),
-                        onPressed: () {
-                          setState(() {
-                            if (selectedFilter == index) {
-                              selectedFilter = null;
-                              changeSortType(sortBy);
-                            } else {
-                              selectedFilter = index;
-                              filterSort();
-                            }
-                          });
-                        },
-                        child: Text(
-                          filterType == 'Grade'
-                              ? index > 10
-                                  ? utils.setRopesGradeText(
-                                      double.parse(filtList[index]))
-                                  : 'V' + filtList[index]
-                              : filtList[index],
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ));
-                }
-              }),
-              separatorBuilder: ((context, index) => (SizedBox(
-                    width: 5,
-                  )))),
-        )
-      ],
+        );
+      },
     );
   }
 
@@ -284,84 +558,81 @@ class _listClimbsPageState extends State<listClimbsPage> {
         shrinkWrap: true,
         itemCount: climbs.length,
         scrollDirection: Axis.vertical,
-        padding: EdgeInsets.only(left: 10, right: 10, top: 5),
-        separatorBuilder: (context, index) => Column(
-              children: [],
+        separatorBuilder: (context, index) => Divider(
+              height: 5,
+              color: Colors.grey,
             ),
         itemBuilder: (context, index) {
-          return GestureDetector(
-              onTap: () {
-                setState(() {
-                  if (selectedClimb == index) {
-                    selectedClimb = null;
-                  } else {
-                    selectedClimb = index;
-                  }
-                });
-              },
-              child: Card(
-                  elevation: 0,
-                  margin: EdgeInsets.all(2),
-                  color: selectedClimb == index
-                      ? Color.fromARGB(255, 235, 235, 235)
-                      : Colors.white,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              Container(
+                height: 35,
+                width: 35,
+                decoration: BoxDecoration(
+                    border: Border.all(
+                        width: 3,
+                        color: climbs[index].isBoulder
+                            ? utils.setBoulderingColor(climbs[index].grade)
+                            : utils.setRopesColor(climbs[index].grade)),
+                    shape: BoxShape.circle),
+                child: Container(
+                  height: 50,
+                  width: 50,
+                  child: Align(
+                    child: AutoSizeText(
+                      minFontSize: 10,
+                      maxLines: 1,
+                      //overflow: TextOverflow.ellipsis,
+                      climbs[index].isBoulder
+                          ? 'V' + climbs[index].grade.toStringAsFixed(0)
+                          : utils.setRopesGradeText(climbs[index].grade),
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(width: 10),
+              Container(
+                  width: 180,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SizedBox(width: 5),
-                      Container(
-                        height: 25,
-                        width: 25,
-                        decoration: BoxDecoration(
-                            color: climbs[index].style != 'Bouldering'
-                                ? utils.setRopesColor(climbs[index].grade)
-                                : utils.setBoulderingColor(climbs[index].grade),
-                            shape: BoxShape.circle),
+                      AutoSizeText(
+                        maxLines: 1,
+                        minFontSize: 8,
+                        overflow: TextOverflow.ellipsis,
+                        climbs[index].location,
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w600),
                       ),
-                      SizedBox(width: 5),
-                      Container(
-                          width: 45,
-                          child: AutoSizeText(
-                            maxLines: 1,
-                            climbs[index].style != 'Bouldering'
-                                ? utils.setRopesGradeText(climbs[index].grade)
-                                : 'V' + climbs[index].grade.toStringAsFixed(0),
-                            style: TextStyle(
-                                fontSize: 26, fontWeight: FontWeight.w900),
-                          )),
-                      SizedBox(width: 5),
-                      Container(
-                          width: 70,
-                          child: Text(
-                            climbs[index].attempts,
-                            style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.w600),
-                          )),
-                      SizedBox(width: 5),
-                      Container(
-                          width: 140,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              AutoSizeText(
-                                maxLines: 1,
-                                outputFormat
-                                    .format(DateTime.parse(climbs[index].date)),
-                                style: TextStyle(
-                                    fontSize: 18, fontWeight: FontWeight.w600),
-                              ),
-                              AutoSizeText(
-                                maxLines: 1,
-                                minFontSize: 8,
-                                overflow: TextOverflow.ellipsis,
-                                climbs[index].location,
-                                style: TextStyle(
-                                    fontSize: 14, fontWeight: FontWeight.w600),
-                              ),
-                            ],
-                          ))
+                      AutoSizeText(
+                        maxLines: 1,
+                        outputFormat.format(DateTime.parse(climbs[index].date)),
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey),
+                      ),
                     ],
-                  )));
+                  )),
+              SizedBox(width: 5),
+              Expanded(
+                  child:
+                      Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                Container(
+                    width: 80,
+                    child: Text(
+                      climbs[index].attempts,
+                      textAlign: TextAlign.end,
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    )),
+                SizedBox(width: 5),
+              ]))
+            ],
+          );
         });
   }
 }

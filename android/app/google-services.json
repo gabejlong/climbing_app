@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "321620852969",
+    "firebase_url": "https://climbingapp-41f44-default-rtdb.firebaseio.com",
+    "project_id": "climbingapp-41f44",
+    "storage_bucket": "climbingapp-41f44.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:321620852969:android:4aa4e264c082a32bd3b078",
+        "android_client_info": {
+          "package_name": "com.example.climbing_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDeUTpplWrMYkeG8FxySTv2N4oRO9oWTj0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

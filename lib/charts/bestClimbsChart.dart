@@ -1,10 +1,8 @@
 import "package:flutter/material.dart";
 import 'package:fl_chart/fl_chart.dart';
-import 'package:carousel_slider/carousel_slider.dart';
 import 'package:climbing_app/widgets/myDropDown.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:climbing_app/pages/database.dart';
 import 'package:climbing_app/models/lists_model.dart';
 import 'package:climbing_app/utils.dart';
 
@@ -17,13 +15,13 @@ class bestClimbsChart extends StatefulWidget {
 
 class _bestClimbsChartState extends State<bestClimbsChart> {
   List<int> best = [];
-  late DB db;
+  //late DB db;
   String style = 'Bouldering';
 
   @override
   void initState() {
     super.initState();
-    db = DB();
+    //db = DB();
     getBest();
   }
 
@@ -47,7 +45,7 @@ class _bestClimbsChartState extends State<bestClimbsChart> {
     return Column(
       children: [
         myDropDown(
-          list: styleList,
+          list: typeList,
           onDropDownChanged: onStyleChanged,
           initial: 'Bouldering',
           hint: '',

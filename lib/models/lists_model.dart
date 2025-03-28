@@ -1,7 +1,25 @@
-List<String> attemptsList = <String>['Flash', 'Redpoint'];
-List<String> attemptsListWithNull = <String>['', 'Flash', 'Redpoint'];
+List<String> attemptsList = <String>['Flash', 'Redpoint', 'Onsight'];
+List<String> attemptsListWithNull = <String>[
+  '',
+  'Flash',
+  'Redpoint',
+  'Onsight'
+];
+List<String> tagsList = <String>[
+  'Indoor',
+  'Outdoor',
+  'Dynamic',
+  'Overhang',
+  'Vertical',
+  'Slab',
+  'Jugs',
+  'Crimps',
+  'Slopers',
+  'Pinches',
+  'Pockets'
+];
 
-List<String> styleList = <String>['Bouldering', 'Top Rope', 'Lead'];
+List<String> typeList = <String>['Boulder', 'Route'];
 List<double> boulderingGradeList = <double>[
   0,
   1,
@@ -13,6 +31,14 @@ List<double> boulderingGradeList = <double>[
   7,
   8,
   9,
+  10,
+  11,
+  12,
+  13,
+  14,
+  15,
+  16,
+  17
 ];
 List<double> ropesGradeList = <double>[
   6,
@@ -43,6 +69,14 @@ List<String> gradeList = <String>[
   '7',
   '8',
   '9',
+  '10',
+  '11',
+  '12',
+  '13',
+  '14',
+  '15',
+  '16',
+  '17',
   '',
   '6',
   '7',
@@ -61,14 +95,6 @@ List<String> gradeList = <String>[
   '13',
   '13.1'
 ];
-List<String> sortByList = <String>[
-  'Location',
-  'Date',
-  'Style',
-  'Grade',
-  'Attempts'
-];
-List<String> filterList = <String>['Style', 'Grade', 'Attempts'];
 List<String> locationOptions = <String>[
   '',
   'Grand River Rocks Waterloo',
@@ -77,4 +103,12 @@ List<String> locationOptions = <String>[
   'Guelph Grotto',
   'Niagara Glen',
   'Moonboard 2016',
+];
+List<String> friendsOptions = <String>['long.climber', 'mich.climbs'];
+List<String> sortOptions = <String>[
+  'Old to New',
+  'New to Old',
+  'Ascending Grades',
+  'Descending Grades',
+  'Group by Location'
 ];
