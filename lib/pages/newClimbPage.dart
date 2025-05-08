@@ -16,7 +16,8 @@ import 'package:climbing_app/widgets/attemptsSection.dart';
 import 'package:climbing_app/utils.dart' as utils;
 import 'package:flutter/material.dart';
 import 'package:climbing_app/models/lists_model.dart';
-import 'package:climbing_app/models/classModels.dart';
+import 'package:climbing_app/models/allModels.dart';
+import 'package:climbing_app/widgets/allWidgets.dart';
 
 class newClimbPage extends StatefulWidget {
   final Function(ClimbPreviewItem) onAddClimbsToPreview;
@@ -25,7 +26,7 @@ class newClimbPage extends StatefulWidget {
   double? selectedGrade;
   String? selectedAttempts;
   String? selectedName;
-  String? selectedTags;
+  Set<String>? selectedTags;
 
   newClimbPage(
       {required this.isUpdate,
@@ -34,7 +35,8 @@ class newClimbPage extends StatefulWidget {
       this.selectedGrade,
       this.selectedName,
       this.selectedAttempts = 'Flash',
-      this.selectedTags = 'Slab'});
+      Set<String>? selectedTags})
+      : selectedTags = selectedTags ?? {};
 
   @override
   State<newClimbPage> createState() => _newClimbPageState();
@@ -44,7 +46,6 @@ class _newClimbPageState extends State<newClimbPage> {
   var previewMap = Map();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   //late DB db;
-  List<String>? tagsList = [];
 
   @override
   void initState() {
@@ -70,12 +71,6 @@ class _newClimbPageState extends State<newClimbPage> {
     });
   }
 
-  void updateTags(text) {
-    setState(() {
-      widget.selectedTags = text;
-    });
-  }
-
   void addClimbstoPreview() {
     setState(() {
       widget.onAddClimbsToPreview(ClimbPreviewItem(
@@ -91,11 +86,11 @@ class _newClimbPageState extends State<newClimbPage> {
   Widget build(BuildContext context) {
     return Scaffold(
         resizeToAvoidBottomInset: false,
-        bottomNavigationBar: NavBottomBar(),
+        //bottomNavigationBar: NavBottomBar(),
         key: _scaffoldKey,
         backgroundColor: Colors.white,
         body: Container(
-          padding: EdgeInsets.fromLTRB(20, 20, 20, 10),
+          padding: EdgeInsets.fromLTRB(20, 50, 20, 10),
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
@@ -149,9 +144,38 @@ class _newClimbPageState extends State<newClimbPage> {
               onNameChanged: updateName,
             ),
             SizedBox(height: 20),
-            tagsSection(
-              selectedTags: widget.selectedTags,
-              onTagsChanged: updateTags,
+            Text(
+              'Tags (optional)',
+              textAlign: TextAlign.left,
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            ),
+            SizedBox(
+              height: 10,
+            ),
+            MultiSelect(
+              selected: widget.selectedTags!,
+              items: tagsList,
+              onItemPressed: (tagsSet) {
+                widget.selectedTags = tagsSet;
+              },
+            ),
+            SizedBox(
+              height: 10,
+            ),
+            TextButton.icon(
+              label: Text(
+                'Create new tag',
+                style: TextStyle(
+                    color: Color(0xff007BDD),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600),
+              ),
+              icon: Icon(
+                CupertinoIcons.add,
+                color: Color(0xff007BDD),
+                size: 20,
+              ),
+              onPressed: () => (),
             ),
             /*
             addClimbsButton(

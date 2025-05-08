@@ -16,7 +16,7 @@ import 'package:climbing_app/widgets/attemptsSection.dart';
 import 'package:climbing_app/utils.dart' as utils;
 import 'package:flutter/material.dart';
 import 'package:climbing_app/models/lists_model.dart';
-import 'package:climbing_app/models/classModels.dart';
+import 'package:climbing_app/models/allModels.dart';
 
 class activityPage extends StatefulWidget {
   activityPage({super.key});
@@ -36,7 +36,7 @@ class _profilePageState extends State<activityPage> {
         key: _scaffoldKey,
         backgroundColor: Colors.white,
         body: Container(
-            padding: EdgeInsets.fromLTRB(20, 20, 20, 10),
+            padding: EdgeInsets.fromLTRB(20, 50, 20, 10),
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(

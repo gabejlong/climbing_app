@@ -1,4 +1,9 @@
 import 'package:climbing_app/pages/activityPage.dart';
+import 'package:climbing_app/pages/loginPages/accountSetUpPage.dart';
+import 'package:climbing_app/pages/loginPages/loginPage.dart';
+import 'package:climbing_app/pages/loginPages/welcomePage.dart';
+import 'package:climbing_app/pages/sessionViewPage.dart';
+import 'package:climbing_app/pages/settingsPage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
@@ -15,7 +20,9 @@ import 'firebase_options.dart';
 import 'package:climbing_app/pages/profilePage.dart';
 import 'package:climbing_app/pages/activityPage.dart';
 import 'package:climbing_app/pages/statsPage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
+bool isLoggedIn = false;
 //import 'dart:io' show Platform;
 Future main() async {
   /*if (Platform.isWindows || Platform.isLinux) {
@@ -27,7 +34,11 @@ Future main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   ); // Initialize Firebase
-
+  FirebaseAuth.instance.authStateChanges().listen((User? user) {
+    if (user != null) {
+      isLoggedIn = true;
+    }
+  });
   //sqfliteFfiInit();
 
   // TODO line should be disabled if android
@@ -42,17 +53,19 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.fl
   @override
   Widget build(BuildContext context) {
-    String userID = 'long.climber';
-
     return MaterialApp(
         routes: {
           '/newSessionPage': (context) => newSessionPage(),
           '/listClimbsPage': (context) => listClimbsPage(),
           '/profilePage': (context) => profilePage(
-                userID: userID,
+                userID: FirebaseAuth.instance.currentUser!.uid,
               ),
           '/activityPage': (context) => activityPage(),
-          '/statsPage': (context) => statsPage()
+          '/statsPage': (context) => statsPage(),
+          '/settingsPage': (context) => settingsPage(),
+          '/welcomePage': (context) => welcomePage(),
+          '/loginPage': (context) => loginPage(),
+          '/accountSetUpPage': (context) => accountSetUpPage()
         },
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
@@ -72,6 +85,6 @@ class MyApp extends StatelessWidget {
           ),
           fontFamily: 'PlusJakartaSans',
         ),
-        home: newSessionPage());
+        home: isLoggedIn ? statsPage() : welcomePage());
   }
 }

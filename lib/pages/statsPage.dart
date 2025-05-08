@@ -13,7 +13,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
 import 'package:climbing_app/charts/countClimbsChart.dart';
-import 'package:climbing_app/models/classModels.dart';
+import 'package:climbing_app/models/allModels.dart';
 
 class statsPage extends StatefulWidget {
   statsPage({super.key});
@@ -25,7 +25,7 @@ class statsPage extends StatefulWidget {
 class _statsPageState extends State<statsPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  List<SessionItem> sessionList = [];
+  List<SessionPreviewItem> sessionList = [];
   List<ClimbPreviewItem> climbPreviewList = [];
   int activeIndex = 0;
 
@@ -99,7 +99,7 @@ class _statsPageState extends State<statsPage> {
                       deletePreview(sessionList[index].sessionId!);
                       deleteSession(sessionList[index].sessionId!);*/
                       await Future.delayed(const Duration(milliseconds: 100));
-                      if (climbPreviewList.isNotEmpty) {
+                      /*if (climbPreviewList.isNotEmpty) {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -110,7 +110,7 @@ class _statsPageState extends State<statsPage> {
                             ),
                           ),
                         );
-                      }
+                      }*/
                     },
                     child: Column(children: [
                       Text(
@@ -118,10 +118,10 @@ class _statsPageState extends State<statsPage> {
                             .format(DateTime.parse(sessionList[index].date)),
                         style: TextStyle(color: Colors.white, fontSize: 20),
                       ),
-                      Text(
+                      /*Text(
                         sessionList[index].location,
                         style: TextStyle(color: Colors.white),
-                      )
+                      )*/
                     ]),
                   );
                 }),
@@ -146,7 +146,7 @@ class _statsPageState extends State<statsPage> {
         key: _scaffoldKey,
         // drawer: NavDrawer(),
         body: Container(
-            padding: EdgeInsets.fromLTRB(20, 20, 20, 10),
+            padding: EdgeInsets.fromLTRB(20, 50, 20, 10),
             child:
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(

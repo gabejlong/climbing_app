@@ -15,30 +15,15 @@ import 'package:climbing_app/widgets/attemptsSection.dart';
 import 'package:climbing_app/utils.dart' as utils;
 import 'package:flutter/material.dart';
 import 'package:climbing_app/models/lists_model.dart';
-import 'package:climbing_app/models/classModels.dart';
+import 'package:climbing_app/models/allModels.dart';
 
-import 'package:climbing_app/firebaseFunctions.dart';
+import 'package:climbing_app/database/firebaseFunctions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class newSessionPage extends StatefulWidget {
-  List<ClimbPreviewItem>? climbPreview;
-  String? selectedLocation;
-  String? selectedDate;
-  String? selectedStyle;
-  double? selectedBoulderingGrade;
-  double? selectedRopesGrade;
-  List<String>? selectedFriends;
-  String? selectedNotes;
-  //String? selectedAttempts;
+  String? sessionID;
 
-  newSessionPage(
-      {this.climbPreview,
-      this.selectedLocation = '',
-      this.selectedDate,
-      this.selectedStyle = 'Bouldering',
-      this.selectedBoulderingGrade = 0,
-      this.selectedRopesGrade = 6,
-      this.selectedNotes = '',
-      this.selectedFriends});
+  newSessionPage({this.sessionID});
 
   @override
   State<newSessionPage> createState() => _newSessionPageState();
@@ -49,139 +34,89 @@ class _newSessionPageState extends State<newSessionPage> {
   late bool isLocationEmpty = false;
   late bool isClimbsEmpty = false;
 
-  /* Drawer logClimbsDrawer() {
-    return Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          const DrawerHeader(
-            decoration: BoxDecoration(color: Colors.blue),
-            child: Text(
-              'Menu',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 18),
-            ),
-          ),
-          ListTile(
-            leading: Icon(CupertinoIcons.home),
-            title: Text('Home'),
-            onTap: () async {
-              if (widget.climbPreview!.isNotEmpty) {
-                var closed = await showSaveDialog(context) ?? false;
-                if (closed == true) {
-                  //Navigator.pop(context);
-                  Navigator.pushNamed(context, '/homePage');
-                } else {
-                  Navigator.pop(context);
-                }
-              } else {
-                Navigator.pushNamed(context, '/homePage');
-              }
-            },
-          ),
-          ListTile(
-            leading: Icon(CupertinoIcons.list_bullet),
-            title: Text('List'),
-            onTap: () async {
-              if (widget.climbPreview!.isNotEmpty) {
-                var closed = await showSaveDialog(context) ?? false;
-                if (closed == true) {
-                  //Navigator.pop(context);
-                  Navigator.pushNamed(context, '/listClimbsPage');
-                } else {
-                  Navigator.pop(context);
-                }
-              } else {
-                Navigator.pushNamed(context, '/listClimbsPage');
-              }
-            },
-          ),
-          ListTile(
-            leading: Icon(CupertinoIcons.doc),
-            title: Text('Log Climbs'),
-            onTap: () {
-              Navigator.pop(context);
-            },
-          )
-        ],
-      ),
-    );
-  } */
+  List<ClimbPreviewItem>? climbPreview = [];
+  SessionPreviewItem session = SessionPreviewItem.empty();
+  late bool isEdit;
+  bool isLoading = true;
+  String? uID;
 
   @override
   void initState() {
+    isEdit = widget.sessionID != null;
     super.initState();
-    widget.climbPreview = widget.climbPreview ?? [];
-    widget.selectedDate =
-        widget.selectedDate ?? DateTime.now().toString().split(" ")[0];
-    widget.selectedFriends = [];
-    //db = DB();
+    if (FirebaseAuth.instance.currentUser != null) {
+      uID = FirebaseAuth.instance.currentUser?.uid;
+    }
+    if (widget.sessionID != null) {
+      loadSession();
+    } else {
+      isLoading = false;
+    }
   }
+  // loading session we need to set all these variables to the session
+  // loading null they need to be set
 
   void updateLocation(text) {
     setState(() {
       if (text == null) {
-        widget.selectedLocation = null;
+        session.location = null;
       } else {
         isLocationEmpty = false;
-        widget.selectedLocation = text;
+        session.location = text;
       }
     });
   }
 
   void updateDate(dateTime) {
     setState(() {
-      widget.selectedDate = (dateTime).toString();
+      session.date = (dateTime).toString();
     });
   }
-
-  void updateStyle(text) {
-    setState(() {
-      widget.selectedStyle = text;
-    });
-  }
-
-  void updateGrade(grade) {
-    setState(() {
-      grade = widget.selectedStyle != 'Bouldering'
-          ? widget.selectedRopesGrade = grade
-          : widget.selectedBoulderingGrade = grade;
-    });
-  }
-
-  /*void postSession(context) async {
-    if (!locationOptions.contains(widget.selectedLocation)) {
-      locationOptions.add(widget.selectedLocation!);
-    }
-    List<ClimbItem> postedClimbs = widget.climbPreview!.map((climb) {
-      return ClimbItem.fromPreview(
-          climb, widget.selectedLocation!, widget.selectedDate!);
-    }).toList();
-    await db.insertClimbs(postedClimbs);
-    Navigator.pushNamed(context, '/listClimbsPage');
-  }*/
-
-  /*void saveSession() async {
-    SessionItem sessionItem = SessionItem(
-        location: widget.selectedLocation!, date: widget.selectedDate!);
-    await db.insertSession(sessionItem);
-    int sessionID = await db.getLastSessionID();
-    await db.insertPreview(sessionID, widget.climbPreview!);
-  }*/
 
   void addClimbsToPreview(ClimbPreviewItem climb) {
     setState(() {
       isClimbsEmpty = false;
-      widget.climbPreview!.add(climb);
+      session.climbs.add(climb);
     });
   }
 
   void editClimbsInPreview(ClimbPreviewItem climb, int index) {
     setState(() {
-      widget.climbPreview![index] = climb;
+      session.climbs[index] = climb;
     });
+  }
+
+  void finalizeSession(bool inProgress) {
+    List<double> grades = [];
+    bool hasBoulder = false;
+    bool hasRopes = false;
+    for (var climb in session.climbs) {
+      grades.add(climb.isBoulder ? climb.grade : climb.grade * -1);
+      if (climb.isBoulder == true) {
+        hasBoulder = true;
+      } else if (climb.isBoulder == false) {
+        hasRopes = false;
+      }
+    }
+
+    var finalSession = SessionItem(
+      sessionId: session.sessionId,
+      inProgress: inProgress,
+      location: session.location!,
+      date: session.date,
+      grades: grades,
+      type: hasBoulder && hasRopes
+          ? "Mixed"
+          : hasBoulder
+              ? "Boulder"
+              : "Route",
+      friends: session.friends,
+      notes: session.notes,
+      climbs: session.climbs,
+    );
+    isEdit
+        ? updateSession(finalSession, uID!)
+        : postSession(finalSession, uID!);
   }
 
   Future<bool?> showSaveDialog(BuildContext context) {
@@ -192,10 +127,15 @@ class _newSessionPageState extends State<newSessionPage> {
             iconPadding: EdgeInsets.all(20),
             icon: Align(
                 alignment: Alignment.topRight,
-                child: Icon(
-                  CupertinoIcons.xmark,
-                  color: Colors.black,
-                  size: 20,
+                child: IconButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  icon: Icon(
+                    CupertinoIcons.xmark,
+                    color: Colors.black,
+                    size: 20,
+                  ),
                 )),
             insetPadding: EdgeInsets.all(2),
             title: Text(
@@ -217,7 +157,9 @@ class _newSessionPageState extends State<newSessionPage> {
                       overlayColor: MaterialStateProperty.all(
                           const Color.fromARGB(255, 212, 212, 212))),
                   onPressed: () {
+                    finalizeSession(true);
                     Navigator.pop(context, false);
+                    Navigator.pushNamed(context, '/listClimbsPage');
                   },
                   child: Text(
                     'Save',
@@ -237,7 +179,7 @@ class _newSessionPageState extends State<newSessionPage> {
                               BorderSide(width: 1, color: Colors.red)),
                         ),
                         onPressed: () {
-                          Navigator.pop(context, true);
+                          Navigator.pushNamed(context, '/listClimbsPage');
                         },
                         child: Text(
                           'Delete Session',
@@ -257,186 +199,217 @@ class _newSessionPageState extends State<newSessionPage> {
   Widget build(BuildContext context) {
     return Scaffold(
         resizeToAvoidBottomInset: false,
-        bottomNavigationBar: NavBottomBar(),
+        //bottomNavigationBar: NavBottomBar(),
         key: _scaffoldKey,
         backgroundColor: Colors.white,
-        body: Container(
-          padding: EdgeInsets.fromLTRB(20, 20, 20, 10),
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              IconButton(
-                icon: Icon(CupertinoIcons.xmark),
-                onPressed: () => {showSaveDialog(context)},
-              ),
-              SizedBox(width: 5),
-              Text(
-                'New Session',
-                textAlign: TextAlign.left,
-                style: TextStyle(fontSize: 27, fontWeight: FontWeight.w600),
-              ),
-              Expanded(
-                child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                  TextButton(
-                      child: Text(
-                        'Post',
+        body: isLoading
+            ? Center(
+                child: Container(
+                    padding: EdgeInsets.only(top: 40),
+                    child: CircularProgressIndicator(
+                      color: Colors.blue,
+                    )))
+            : sessionPage());
+  }
+
+  void loadSession() async {
+    session = (await getSession(uID!, widget.sessionID!)).toEditItem();
+
+    setState(() {
+      isLoading = false;
+    });
+  }
+
+  Container sessionPage() {
+    return Container(
+      padding: EdgeInsets.fromLTRB(20, 50, 20, 10),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          IconButton(
+            icon: Icon(CupertinoIcons.xmark),
+            onPressed: () => {
+              if (session.climbs.isNotEmpty)
+                {showSaveDialog(context)}
+              else
+                {Navigator.pushNamed(context, '/listClimbsPage')}
+            },
+          ),
+          SizedBox(width: 5),
+          Text(
+            isEdit ? 'Edit Session' : 'New Session',
+            textAlign: TextAlign.left,
+            style: TextStyle(fontSize: 27, fontWeight: FontWeight.w600),
+          ),
+          Expanded(
+            child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+              TextButton(
+                  child: Text(
+                    isEdit
+                        ? session.inProgress!
+                            ? 'Post'
+                            : 'Update'
+                        : 'Post',
+                    style: TextStyle(
+                        color: Color(0xff007BDD),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600),
+                  ),
+                  onPressed: () {
+                    if (session.location != '' && session.climbs.isNotEmpty) {
+                      finalizeSession(false);
+                      Navigator.pop(context, true);
+                      Navigator.pushNamed(context, '/listClimbsPage');
+                    }
+                    if (session.location == '') {
+                      setState(() {
+                        isLocationEmpty = true;
+                      });
+                    }
+                    if (session.climbs.isEmpty) {
+                      setState(() {
+                        isClimbsEmpty = true;
+                      });
+                    } else {}
+                  }),
+            ]),
+          )
+        ]),
+        SizedBox(
+          height: 25,
+        ),
+        locationSection(
+          selectedLocation: session.location,
+          onLocationChanged: updateLocation,
+        ),
+        isLocationEmpty
+            ? Text(
+                'Add climbing location to post session',
+                style:
+                    TextStyle(color: Colors.red, fontWeight: FontWeight.w700),
+              )
+            : SizedBox(height: 20),
+        SizedBox(height: 10),
+        dateSection(
+          selectedDateString: session.date,
+          onDateChanged: updateDate,
+        ),
+        SizedBox(
+          height: 30,
+        ),
+        friendsSection(
+            selectedFriends: session.friends, onFriendChanged: (String _) {}),
+        SizedBox(
+          height: 30,
+        ),
+        notesSection(selectedNotes: (), onNotesChanged: (String _) {}),
+        SizedBox(
+          height: 30,
+        ),
+        Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          Text(
+            'Climbs',
+            textAlign: TextAlign.left,
+            style: TextStyle(fontSize: 27, fontWeight: FontWeight.w600),
+          ),
+          Expanded(
+            child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  TextButton.icon(
+                    label: Text(
+                      'Boulder',
+                      style: TextStyle(
+                          color: Color(0xff007BDD),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600),
+                    ),
+                    icon: Icon(
+                      CupertinoIcons.add,
+                      color: Color(0xff007BDD),
+                      size: 16,
+                    ),
+                    onPressed: () => {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => newClimbPage(
+                            isUpdate: false,
+                            isBoulder: true,
+                            onAddClimbsToPreview: addClimbsToPreview,
+                          ),
+                        ),
+                      )
+                    },
+                  ),
+                  TextButton.icon(
+                      label: Text(
+                        'Route',
                         style: TextStyle(
                             color: Color(0xff007BDD),
                             fontSize: 16,
                             fontWeight: FontWeight.w600),
                       ),
-                      onPressed: () {
-                        if (widget.selectedLocation != '' &&
-                            widget.climbPreview!.isNotEmpty) {
-                          List<double> grades = [];
-                          for (var climb in widget.climbPreview!) {
-                            grades.add(climb.isBoulder
-                                ? climb.grade
-                                : climb.grade * -1);
-                          }
-                          var session = SessionItem(
-                              location: widget.selectedLocation!,
-                              date: widget.selectedDate!,
-                              friends: widget.selectedFriends,
-                              notes: widget.selectedNotes,
-                              climbs: widget.climbPreview!,
-                              grades: grades);
-                          postSession(session);
-                          Navigator.pop(context, true);
-                          Navigator.pushNamed(context, '/listClimbsPage');
-                        }
-                        if (widget.selectedLocation == '') {
-                          setState(() {
-                            isLocationEmpty = true;
-                          });
-                        }
-                        if (widget.climbPreview!.isEmpty) {
-                          setState(() {
-                            isClimbsEmpty = true;
-                          });
-                        } else {}
-                      }),
-                ]),
-              )
-            ]),
-            SizedBox(
-              height: 25,
-            ),
-            locationSection(
-              selectedLocation: widget.selectedLocation,
-              onLocationChanged: updateLocation,
-            ),
-            isLocationEmpty
-                ? Text(
-                    'Add climbing location to post session',
-                    style: TextStyle(
-                        color: Colors.red, fontWeight: FontWeight.w700),
-                  )
-                : SizedBox(height: 20),
-            SizedBox(height: 10),
-            dateSection(
-              selectedDateString: widget.selectedDate,
-              onDateChanged: updateDate,
-            ),
-            SizedBox(
-              height: 30,
-            ),
-            friendsSection(
-                selectedFriends: widget.selectedFriends!,
-                onFriendChanged: (String _) {}),
-            SizedBox(
-              height: 30,
-            ),
-            notesSection(selectedNotes: (), onNotesChanged: (String _) {}),
-            SizedBox(
-              height: 30,
-            ),
-            Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text(
-                'Climbs',
-                textAlign: TextAlign.left,
-                style: TextStyle(fontSize: 27, fontWeight: FontWeight.w600),
-              ),
-              Expanded(
-                child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      TextButton.icon(
-                        label: Text(
-                          'Boulder',
-                          style: TextStyle(
-                              color: Color(0xff007BDD),
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600),
-                        ),
-                        icon: Icon(
-                          CupertinoIcons.add,
-                          color: Color(0xff007BDD),
-                          size: 16,
-                        ),
-                        onPressed: () => {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => newClimbPage(
-                                isUpdate: false,
-                                isBoulder: true,
-                                onAddClimbsToPreview: addClimbsToPreview,
-                              ),
-                            ),
-                          )
-                        },
+                      icon: Icon(
+                        CupertinoIcons.add,
+                        color: Color(0xff007BDD),
+                        size: 18,
                       ),
-                      TextButton.icon(
-                          label: Text(
-                            'Route',
-                            style: TextStyle(
-                                color: Color(0xff007BDD),
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600),
-                          ),
-                          icon: Icon(
-                            CupertinoIcons.add,
-                            color: Color(0xff007BDD),
-                            size: 18,
-                          ),
-                          onPressed: () => {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => newClimbPage(
-                                      isUpdate: false,
-                                      isBoulder: false,
-                                      onAddClimbsToPreview: addClimbsToPreview,
-                                    ),
-                                  ),
-                                )
-                              })
-                    ]),
-              )
-            ]),
-            isClimbsEmpty
-                ? Center(
-                    heightFactor: 4,
-                    child: Container(
-                        height: 60,
-                        width: 190,
-                        child: Text(
-                          textAlign: TextAlign.center,
-                          softWrap: true,
-                          'You haven\'t added any climbs to this session',
-                          style: TextStyle(color: Colors.grey, fontSize: 15),
-                        )))
-                : Expanded(child: climbsPreviewList())
-          ]),
-        ));
+                      onPressed: () => {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => newClimbPage(
+                                  isUpdate: false,
+                                  isBoulder: false,
+                                  onAddClimbsToPreview: addClimbsToPreview,
+                                ),
+                              ),
+                            )
+                          })
+                ]),
+          )
+        ]),
+        isClimbsEmpty
+            ? Center(
+                heightFactor: 4,
+                child: Container(
+                    height: 53.5,
+                    width: 190,
+                    child: Text(
+                      textAlign: TextAlign.center,
+                      softWrap: true,
+                      'You haven\'t added any climbs to this session',
+                      style: TextStyle(color: Colors.grey, fontSize: 15),
+                    )))
+            : Expanded(child: climbsPreviewList()),
+        Center(
+            child: TextButton(
+                onPressed: () {
+                  if (session.sessionId != null) {
+                    deleteSession(uID!, session.sessionId!);
+                  }
+                  if (session.climbs.isNotEmpty) {
+                    showSaveDialog(context);
+                  } else {
+                    Navigator.pushNamed(context, '/listClimbsPage');
+                  }
+                },
+                child: Text(
+                  'Delete Session',
+                  style: TextStyle(
+                      color: Color.fromARGB(255, 221, 0, 0),
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold),
+                )))
+      ]),
+    );
   }
 
   ListView climbsPreviewList() {
     return ListView.separated(
         shrinkWrap: true,
-        itemCount: widget.climbPreview!.length,
+        itemCount: session.climbs.length,
         scrollDirection: Axis.vertical,
         separatorBuilder: (context, index) => Column(
               mainAxisSize: MainAxisSize.min,
@@ -458,11 +431,10 @@ class _newSessionPageState extends State<newSessionPage> {
                 decoration: BoxDecoration(
                     border: Border.all(
                         width: 4,
-                        color: widget.climbPreview![index].isBoulder
-                            ? utils.setBoulderingColor(
-                                widget.climbPreview![index].grade)
-                            : utils.setRopesColor(
-                                widget.climbPreview![index].grade)),
+                        color: session.climbs[index].isBoulder
+                            ? utils
+                                .setBoulderingColor(session.climbs[index].grade)
+                            : utils.setRopesColor(session.climbs[index].grade)),
                     shape: BoxShape.circle),
                 child: Container(
                   width: 50,
@@ -471,12 +443,10 @@ class _newSessionPageState extends State<newSessionPage> {
                       minFontSize: 10,
                       maxLines: 1,
                       //overflow: TextOverflow.ellipsis,
-                      widget.climbPreview![index].isBoulder
-                          ? 'V' +
-                              widget.climbPreview![index].grade
-                                  .toStringAsFixed(0)
-                          : utils.setRopesGradeText(
-                              widget.climbPreview![index].grade),
+                      session.climbs[index].isBoulder
+                          ? 'V' + session.climbs[index].grade.toStringAsFixed(0)
+                          : utils
+                              .setRopesGradeText(session.climbs[index].grade),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w900,
@@ -490,37 +460,57 @@ class _newSessionPageState extends State<newSessionPage> {
                 ),
               ),
               SizedBox(width: 10),
-              Container(
-                  width: 160,
-                  child: widget.climbPreview![index].name == null
-                      ? Text(
-                          widget.climbPreview![index].attempts,
-                          style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600),
-                        )
-                      : Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            AutoSizeText(
-                              widget.climbPreview![index].name!,
-                              maxLines: 1,
-                              minFontSize: 8,
-                              overflow: TextOverflow.ellipsis,
+              InkWell(
+                  onTap: () {
+                    setState(() {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => newClimbPage(
+                            isUpdate: true,
+                            isBoulder: true,
+                            selectedGrade: session.climbs[index].grade,
+                            selectedAttempts: session.climbs[index].attempts,
+                            selectedName: session.climbs[index].name,
+                            onAddClimbsToPreview: (climb) =>
+                                {editClimbsInPreview(climb, index)},
+                          ),
+                        ),
+                      );
+                    });
+                  },
+                  child: Container(
+                      width: 160,
+                      child: session.climbs[index].name == null
+                          ? Text(
+                              session.climbs[index].attempts,
                               style: TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.w600),
-                            ),
-                            Text(
-                              widget.climbPreview![index].attempts,
-                              textAlign: TextAlign.end,
-                              style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500),
+                                  color: Colors.black,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600),
                             )
-                          ],
-                        )),
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                AutoSizeText(
+                                  session.climbs[index].name!,
+                                  maxLines: 1,
+                                  minFontSize: 8,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600),
+                                ),
+                                Text(
+                                  session.climbs[index].attempts,
+                                  textAlign: TextAlign.end,
+                                  style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500),
+                                )
+                              ],
+                            ))),
               SizedBox(width: 5),
               Expanded(
                   child:
@@ -528,31 +518,7 @@ class _newSessionPageState extends State<newSessionPage> {
                 IconButton(
                     onPressed: () {
                       setState(() {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => newClimbPage(
-                              isUpdate: true,
-                              isBoulder: true,
-                              selectedGrade: widget.climbPreview![index].grade,
-                              selectedAttempts:
-                                  widget.climbPreview![index].attempts,
-                              selectedName: widget.climbPreview![index].name,
-                              onAddClimbsToPreview: (climb) =>
-                                  {editClimbsInPreview(climb, index)},
-                            ),
-                          ),
-                        );
-                      });
-                    },
-                    icon: Icon(
-                      CupertinoIcons.pencil,
-                      color: Colors.blue,
-                    )),
-                IconButton(
-                    onPressed: () {
-                      setState(() {
-                        widget.climbPreview!.removeAt(index);
+                        session.climbs.removeAt(index);
                       });
                     },
                     icon: Icon(

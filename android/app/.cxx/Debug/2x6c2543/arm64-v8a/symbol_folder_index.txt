@@ -1,0 +1,1 @@
+C:\Users\gabri\Documents\Climbing App Flutter\climbing_app\build\app\intermediates\cxx\Debug\2x6c2543\obj\arm64-v8a

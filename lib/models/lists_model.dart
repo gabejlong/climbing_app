@@ -105,10 +105,15 @@ List<String> locationOptions = <String>[
   'Moonboard 2016',
 ];
 List<String> friendsOptions = <String>['long.climber', 'mich.climbs'];
-List<String> sortOptions = <String>[
+List<String> climbSortOptions = <String>[
   'Old to New',
   'New to Old',
   'Ascending Grades',
   'Descending Grades',
+  'Group by Location'
+];
+List<String> sessionSortOptions = <String>[
+  'Old to New',
+  'New to Old',
   'Group by Location'
 ];
